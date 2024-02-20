@@ -55,5 +55,23 @@
   outline: none;
   font-weight: 700;
   cursor:pointer;
+  padding: ;
+}
 
+.waiting{
+  display: flex;
+  align-items: center;
+  text-align: center;
+  flex-direction: column;
+  font-size: 40px;
+
+
+}
+
+.current-move-cross{
+  background-color: #3FA7F0;
+}
+
+.current-move-circle{
+  background-color: #DD7F9F;
 }

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import './App.css'
-
+import {io} from 'socket.io-client'
 import Square from './square/square'
+import Swal from 'sweetalert2'
 function App() {
   const gridArray =  [
     ['', '', ''],
@@ -13,6 +14,10 @@ function App() {
   const [finishState, setFinishState] = useState(false)
   const [finishedArrayState, setFinishedArrayState] = useState([])
   const [playOnline, setPlayOnline] = useState(false)
+  const [socket, setSocket] = useState(null)
+  const [playerName, setPlayerName] = useState('')
+  const [oppoentName, setOpponentName] = useState(null)
+  const [playingAs, setPlayingAs] = useState(null)
   const checkWinner = ()=>{
       // Check rows
       for (let i = 0; i < 3; i++) {
@@ -71,17 +76,69 @@ function App() {
 
   }, [gameState])
 
+
+    socket?.on("connect", function(){
+      setPlayOnline(true)
+    })
+    socket?.on("OpponentNotFound", function(){
+      setOpponentName(false)
+    })
+    socket?.on("OpponentFound", function(data){
+      setPlayingAs(data.playingAs);
+      setOpponentName(data.opponentName)
+    })
+
+    
+  const takePlayerName = async ()=>{
+    const result = await Swal.fire({
+      title: "Enter your name",
+      input: "text",
+      showCancelButton: true,
+      inputValidator: (value) => {
+        if (!value) {
+          return "You need to write something!";
+        }
+      }
+    });
+
+    return result;
+  }
+  const playOnlineClick = async()=>{
+    const result = await takePlayerName()
+
+    if(!result.isConfirmed){
+      return
+    }
+
+    const userName = result.value;
+    setPlayerName(userName)
+    const newSocktet = io("http://localhost:3000",{
+      autoConnect:true,
+    })
+    newSocktet?.emit("request_to_play",{
+      playerName: userName,
+    })
+    setSocket(newSocktet)
+  }
+
   if(!playOnline){
     return <div className='mainDiv'>
-      <button className='playOnline'>Play Online</button>
+      <button className='playOnline' onClick={playOnlineClick}>Play Online</button>
     </div>
   }
+
+  if(playOnline && !oppoentName){
+    return <div className='waiting'>
+      <p>...Waiting for an opponent</p>
+    </div>
+  }
+
   return (
     <>
       <div className='mainDiv'>
       <div className='move-detection'>
-            <div className='left'>Your Self</div>
-            <div className='right'>Opponent</div>
+            <div className={`left ${currentPlayer === playingAs ? 'current-move-'+currentPlayer:''}`}>{playerName}</div>
+            <div className={`right ${currentPlayer === playingAs ? 'current-move-'+currentPlayer:''}`}>{oppoentName}</div>
           </div>
         <div>
           <h1 className='game-heading water-background'>Tic-Tac-Toe</h1>
