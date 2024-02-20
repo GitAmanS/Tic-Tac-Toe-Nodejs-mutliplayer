@@ -7,10 +7,10 @@ const io = new Server(httpServer, {
 });
 
 const allUsers = {};
-const allRooms = [];
+const waitingPlayers = [];
 
 io.on("connection", (socket) => {
-  console.log("new user joined", socket.id)
+  console.log("new user joined", socket.id);
   allUsers[socket.id] = {
     socket: socket,
     online: true,
@@ -20,29 +20,21 @@ io.on("connection", (socket) => {
     const currentUser = allUsers[socket.id];
     currentUser.playerName = data.playerName;
 
-    let opponentPlayer;
+    if (waitingPlayers.length > 0) {
+      const opponentPlayer = waitingPlayers.shift();
 
-    for (const key in allUsers) {
-      const user = allUsers[key];
-      if (user.online && !user.playing && socket.id !== key) {
-        opponentPlayer = user;
-        break;
-      }
-    }
-
-    if (opponentPlayer) {
-      allRooms.push({
+      const room = {
         player1: opponentPlayer,
         player2: currentUser,
+      };
+
+      opponentPlayer.socket.emit("OpponentFound", {
+        opponentName: currentUser.playerName,
+        playingAs: "circle",
       });
 
       currentUser.socket.emit("OpponentFound", {
         opponentName: opponentPlayer.playerName,
-        playingAs: "circle",
-      });
-
-      opponentPlayer.socket.emit("OpponentFound", {
-        opponentName: currentUser.playerName,
         playingAs: "cross",
       });
 
@@ -58,27 +50,17 @@ io.on("connection", (socket) => {
         });
       });
     } else {
-      currentUser.socket.emit("OpponentNotFound");
+      waitingPlayers.push(currentUser);
     }
   });
 
   socket.on("disconnect", function () {
     const currentUser = allUsers[socket.id];
     currentUser.online = false;
-    currentUser.playing = false;
 
-    for (let index = 0; index < allRooms.length; index++) {
-      const { player1, player2 } = allRooms[index];
-
-      if (player1.socket.id === socket.id) {
-        player2.socket.emit("opponentLeftMatch");
-        break;
-      }
-
-      if (player2.socket.id === socket.id) {
-        player1.socket.emit("opponentLeftMatch");
-        break;
-      }
+    const index = waitingPlayers.findIndex((player) => player.socket.id === socket.id);
+    if (index !== -1) {
+      waitingPlayers.splice(index, 1);
     }
   });
 });
