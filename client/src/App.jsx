@@ -3,7 +3,7 @@ import "./App.css";
 import Square from "./square/square";
 import { io } from "socket.io-client";
 import Swal from "sweetalert2";
-
+import Auth from "./components/Auth/Auth";
 const renderFrom = [
   [1, 2, 3],
   [4, 5, 6],
@@ -20,7 +20,7 @@ const App = () => {
   const [playerName, setPlayerName] = useState("");
   const [opponentName, setOpponentName] = useState(null);
   const [playingAs, setPlayingAs] = useState(null);
-
+  const [token, setToken] = useState(null)
   const checkWinner = () => {
     // row dynamic
     for (let row = 0; row < gameState.length; row++) {
@@ -138,6 +138,12 @@ const App = () => {
 
     setSocket(newSocket);
   }
+
+  // if(!token){
+  //   return <div className="main-div">
+  //     <Auth/>
+  //     </div>
+  // }
 
   if (!playOnline) {
     return (
